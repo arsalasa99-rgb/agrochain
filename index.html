@@ -1,77 +1,870 @@
 <!DOCTYPE html>
 <html lang="id">
-  <head>
+<head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Agro-Chain Nusantara</title>
+    
+    <!-- 1. Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- 2. Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- 3. Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- 4. Chart.js (Pengganti Recharts) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Configuration -->
     <style>
       body {
         font-family: 'Plus Jakarta Sans', sans-serif;
-        background-color: #43A046; /* Green Harvest */
+        background-color: #f8fafc; /* Slate 50 */
         overscroll-behavior-y: none;
+        -webkit-tap-highlight-color: transparent;
       }
-      /* Hide scrollbar for clean UI */
-      .no-scrollbar::-webkit-scrollbar {
-        display: none;
+      /* Hide scrollbar */
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      
+      /* Animations */
+      @keyframes grow {
+        0%, 100% { transform: scaleY(1); }
+        50% { transform: scaleY(1.1); }
       }
-      .no-scrollbar {
-        -ms-overflow-style: none;
-        scrollbar-width: none;
+      .animate-grow { animation: grow 2s ease-in-out infinite; }
+      
+      @keyframes fadeIn {
+        0% { opacity: 0; }
+        100% { opacity: 1; }
       }
+      .animate-fade-in { animation: fadeIn 0.5s ease-out forwards; }
+      
+      @keyframes slideUp {
+        0% { transform: translateY(20px); opacity: 0; }
+        100% { transform: translateY(0); opacity: 1; }
+      }
+      .animate-slide-up { animation: slideUp 0.5s ease-out forwards; }
     </style>
+    
     <script>
       tailwind.config = {
         theme: {
           extend: {
             colors: {
               agro: {
-                green: '#43A046',    // Background
-                dark: '#17662D',     // Primary Text
-                blue: '#0B5ABD',     // Secondary/Nav
-                gold: '#FBCA38',     // Highlight/Badge
-                soil: '#F5F5F5',     // Card/Layout
-                alert: '#E53935',    // Status Alert
+                green: '#43A046',    
+                dark: '#17662D',     
+                blue: '#0B5ABD',     
+                gold: '#FBCA38',     
+                soil: '#F5F5F5',     
+                alert: '#E53935',    
                 white: '#FFFFFF',
-              }
-            },
-            animation: {
-              'grow': 'grow 2s ease-in-out infinite',
-              'fade-in': 'fadeIn 0.5s ease-out forwards',
-              'slide-up': 'slideUp 0.5s ease-out forwards',
-            },
-            keyframes: {
-              grow: {
-                '0%, 100%': { transform: 'scaleY(1)' },
-                '50%': { transform: 'scaleY(1.1)' },
-              },
-              fadeIn: {
-                '0%': { opacity: '0' },
-                '100%': { opacity: '1' },
-              },
-              slideUp: {
-                '0%': { transform: 'translateY(20px)', opacity: '0' },
-                '100%': { transform: 'translateY(0)', opacity: '1' },
               }
             }
           }
         }
       }
     </script>
-  <script type="importmap">
+<script type="importmap">
 {
   "imports": {
-    "react/": "https://aistudiocdn.com/react@^19.2.1/",
     "react": "https://aistudiocdn.com/react@^19.2.1",
     "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.1/",
+    "react/": "https://aistudiocdn.com/react@^19.2.1/",
     "lucide-react": "https://aistudiocdn.com/lucide-react@^0.556.0",
     "recharts": "https://aistudiocdn.com/recharts@^3.5.1"
   }
 }
 </script>
 </head>
-  <body>
-    <div id="root"></div>
-  </body>
+<body class="text-gray-900 max-w-md mx-auto shadow-2xl min-h-screen relative overflow-hidden bg-white">
+
+    <!-- CONTAINER UTAMA -->
+    <div id="app"></div>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        // --- DATA & STATE ---
+        const APP_NAME = "Agro-Chain Nusantara";
+        const TAGLINE = "Pertanian Sejahtera untuk Indonesia Emas 2045";
+        
+        const MOCK_NOTIFICATIONS = [
+            { id: '1', title: 'Sewa Traktor Tersedia', message: 'Traktor tersedia sewa di RW 05, Rp 50k/jam.', type: 'INFO', timestamp: '10 Menit lalu' },
+            { id: '2', title: 'Harga Cabai Naik!', message: 'Harga cabai rawit naik 15% di Pasar Induk.', type: 'SUCCESS', timestamp: '1 Jam lalu' },
+            { id: '3', title: 'Peringatan Cuaca', message: '7 hari ke depan curah hujan tinggi.', type: 'ALERT', timestamp: '3 Jam lalu' }
+        ];
+
+        // State Global
+        const state = {
+            view: 'SPLASH', // SPLASH, ONBOARDING, APP
+            currentAppView: 'home', // home, production, finance, market, profile
+            user: null,
+            activeTabs: {
+                production: 'PREDICTION',
+                finance: 'LOAN',
+                market: 'BURSA'
+            },
+            // Data sementara
+            chatHistory: [
+                { id: 1, sender: 'ai', text: 'Halo, saya Agro-AI. Asisten agronomi berlisensi Anda. Ada gejala hama atau kebutuhan konsultasi pupuk apa hari ini?', time: '08:00' }
+            ],
+            rentals: [
+                { id: 1, name: 'Traktor Roda 4', owner: 'UD Tani Maju', dist: '0.8 km', price: '150rb', status: 'Available', top: '30%', left: '40%' },
+                { id: 2, name: 'Drone Sprayer', owner: 'Smart Tani', dist: '1.2 km', price: '250rb', status: 'Booked', top: '60%', left: '70%' },
+                { id: 3, name: 'Combine Harvester', owner: 'KUD Makmur', dist: '2.5 km', price: '400rb', status: 'Available', top: '20%', left: '80%' }
+            ],
+            projects: [
+                { id: 1, name: 'Perluasan Lahan Jagung', farmer: 'Pak Yanto', return: '12%', progress: 70, target: 5000000, collected: 3500000 },
+                { id: 2, name: 'Hidroponik Melon', farmer: 'Bu Susi', return: '15%', progress: 30, target: 10000000, collected: 3000000 },
+            ],
+            marketRequests: [
+                { id: 1, buyer: 'PT Indofood', item: 'Kentang Granola', vol: '10 Ton', price: 'Rp 12.000/kg', loc: 'Jawa Tengah' },
+                { id: 2, buyer: 'Superindo', item: 'Cabai Rawit', vol: '2 Ton', price: 'Rp 45.000/kg', loc: 'Jawa Barat' },
+            ],
+            toast: null,
+            modals: {
+                camera: false,
+                rental: null,
+                wizard: false,
+                logout: false
+            }
+        };
+
+        // --- UTILS ---
+        function renderIcons() {
+            lucide.createIcons();
+        }
+
+        function showToast(msg, type = 'success') {
+            const toastEl = document.createElement('div');
+            toastEl.className = `fixed top-4 left-4 right-4 z-[110] animate-slide-up`;
+            toastEl.innerHTML = `
+                <div class="rounded-xl p-4 shadow-lg flex items-center gap-3 text-white ${type === 'success' ? 'bg-agro-green' : 'bg-red-500'}">
+                    <i data-lucide="${type === 'success' ? 'check' : 'alert-circle'}" width="24"></i>
+                    <p class="font-medium text-sm">${msg}</p>
+                </div>
+            `;
+            document.body.appendChild(toastEl);
+            renderIcons();
+            setTimeout(() => toastEl.remove(), 3000);
+        }
+
+        function LoadingRiceHTML(text = '', size = 'md') {
+            const sizeClasses = { sm: 'w-8 h-8', md: 'w-16 h-16', lg: 'w-24 h-24' };
+            return `
+            <div class="flex flex-col items-center justify-center space-y-4">
+                <div class="relative ${sizeClasses[size]}">
+                    <svg viewBox="0 0 100 100" class="w-full h-full text-agro-gold animate-grow origin-bottom">
+                        <path d="M50 90 Q30 60 40 30" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" />
+                        <path d="M50 90 Q70 60 60 30" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" />
+                        <path d="M50 90 V 20" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" />
+                        <ellipse cx="40" cy="30" rx="3" ry="6" fill="currentColor" class="animate-pulse" />
+                        <ellipse cx="60" cy="30" rx="3" ry="6" fill="currentColor" class="animate-pulse" style="animation-delay: 0.2s" />
+                        <ellipse cx="50" cy="20" rx="3" ry="6" fill="currentColor" class="animate-pulse" style="animation-delay: 0.4s" />
+                    </svg>
+                </div>
+                ${text ? `<p class="text-agro-dark font-medium animate-pulse">${text}</p>` : ''}
+            </div>`;
+        }
+
+        // --- RENDER FUNCTIONS ---
+
+        // 1. SPLASH SCREEN
+        function renderSplash() {
+            const app = document.getElementById('app');
+            app.innerHTML = `
+                <div class="h-screen w-full bg-agro-green flex flex-col items-center justify-center p-6 text-white relative overflow-hidden">
+                    <div class="absolute inset-0 opacity-10 pointer-events-none" style="background-image: radial-gradient(circle, #ffffff 1px, transparent 1px); background-size: 20px 20px;"></div>
+                    
+                    <div id="splash-logo" class="opacity-0 translate-y-10 transition-all duration-700 text-center mb-12 z-10">
+                        <div class="w-24 h-24 bg-white rounded-full mx-auto mb-6 flex items-center justify-center shadow-xl">
+                            <i data-lucide="sprout" class="text-agro-green w-12 h-12"></i>
+                        </div>
+                        <h1 class="text-3xl font-bold mb-2">${APP_NAME}</h1>
+                        <p class="text-agro-soil/90 text-sm max-w-xs mx-auto">${TAGLINE}</p>
+                    </div>
+
+                    <div class="flex gap-6 mb-16 z-10 h-24 items-end">
+                         <div id="icon-1" class="opacity-0 transition-all duration-500 flex flex-col items-center">
+                            <div class="bg-white/20 p-4 rounded-2xl backdrop-blur-sm mb-2"><i data-lucide="tractor" class="text-agro-gold w-8 h-8"></i></div>
+                            <span class="text-xs font-medium">Modern</span>
+                         </div>
+                         <div id="icon-2" class="opacity-0 transition-all duration-500 delay-100 flex flex-col items-center -mt-8">
+                            <div class="bg-white/20 p-4 rounded-2xl backdrop-blur-sm mb-2"><i data-lucide="plane" class="text-agro-gold w-8 h-8"></i></div>
+                            <span class="text-xs font-medium">Teknologi</span>
+                         </div>
+                         <div id="icon-3" class="opacity-0 transition-all duration-500 delay-200 flex flex-col items-center">
+                            <div class="bg-white/20 p-4 rounded-2xl backdrop-blur-sm mb-2"><i data-lucide="sprout" class="text-agro-gold w-8 h-8"></i></div>
+                            <span class="text-xs font-medium">Makmur</span>
+                         </div>
+                    </div>
+
+                    <div id="splash-btn" class="opacity-0 translate-y-10 transition-all duration-700 absolute bottom-10 w-full px-6">
+                        <button onclick="finishSplash()" class="w-full bg-agro-gold text-agro-dark hover:bg-yellow-400 font-bold text-lg py-4 rounded-xl shadow-xl shadow-black/20">
+                            Mulai Sekarang
+                        </button>
+                    </div>
+                </div>
+            `;
+            renderIcons();
+
+            // Animations
+            setTimeout(() => document.getElementById('splash-logo').classList.remove('opacity-0', 'translate-y-10'), 500);
+            setTimeout(() => document.getElementById('icon-1').classList.remove('opacity-0'), 1500);
+            setTimeout(() => document.getElementById('icon-2').classList.remove('opacity-0'), 2200);
+            setTimeout(() => document.getElementById('icon-3').classList.remove('opacity-0'), 2900);
+            setTimeout(() => document.getElementById('splash-btn').classList.remove('opacity-0', 'translate-y-10'), 3500);
+        }
+
+        function finishSplash() {
+            const savedUser = localStorage.getItem('agroUser');
+            if (savedUser) {
+                state.user = JSON.parse(savedUser);
+                state.view = 'APP';
+            } else {
+                state.view = 'ONBOARDING';
+            }
+            render();
+        }
+
+        // 2. ONBOARDING
+        function renderOnboarding() {
+            const app = document.getElementById('app');
+            app.innerHTML = `
+                <div class="min-h-screen bg-agro-soil flex flex-col p-6 animate-fade-in">
+                    <div class="flex justify-between items-center mb-8 mt-4">
+                        <h2 class="text-2xl font-bold text-agro-dark">Masuk / Daftar</h2>
+                    </div>
+                    <div class="bg-white rounded-2xl p-6 shadow-sm flex-1 flex flex-col justify-center mb-6">
+                        <div class="text-center mb-6">
+                             <div class="w-16 h-16 bg-agro-green/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                               <i data-lucide="user" class="text-agro-green w-8 h-8"></i>
+                             </div>
+                             <h3 class="text-lg font-bold text-gray-800">Selamat Datang Petani!</h3>
+                             <p class="text-gray-500 text-sm">Masukan data diri untuk memulai</p>
+                        </div>
+                        <form onsubmit="handleOnboardingSubmit(event)" class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-agro-dark mb-1">Nama Lengkap</label>
+                                <input type="text" id="ob-name" required class="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-agro-green/50" placeholder="Contoh: Pak Budi">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-agro-dark mb-1">Lokasi (Desa)</label>
+                                <select id="ob-loc" class="w-full border border-gray-200 rounded-xl px-4 py-3 bg-white">
+                                    <option>Desa Sukajaya</option>
+                                    <option>Desa Makmur</option>
+                                    <option>Desa Cibaduyut</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="w-full mt-4 bg-agro-green text-white py-3 rounded-xl font-bold hover:bg-agro-dark transition">Masuk Dashboard</button>
+                        </form>
+                    </div>
+                </div>
+            `;
+            renderIcons();
+        }
+
+        function handleOnboardingSubmit(e) {
+            e.preventDefault();
+            const name = document.getElementById('ob-name').value;
+            const loc = document.getElementById('ob-loc').value;
+            const newUser = { name, location: loc, role: 'OWNER' };
+            localStorage.setItem('agroUser', JSON.stringify(newUser));
+            state.user = newUser;
+            state.view = 'APP';
+            render();
+        }
+
+        // 3. MAIN APP SHELL
+        function renderApp() {
+            const app = document.getElementById('app');
+            // Check which view to render inside
+            let contentHTML = '';
+            
+            if (state.currentAppView === 'home') contentHTML = getDashboardHTML();
+            else if (state.currentAppView === 'production') contentHTML = getProductionHTML();
+            else if (state.currentAppView === 'finance') contentHTML = getFinanceHTML();
+            else if (state.currentAppView === 'market') contentHTML = getMarketHTML();
+            else if (state.currentAppView === 'profile') contentHTML = getProfileHTML();
+
+            app.innerHTML = `
+                <main class="h-screen overflow-y-auto no-scrollbar bg-gray-50 pb-20">
+                    ${contentHTML}
+                </main>
+                <nav class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white border-t border-gray-200 px-6 py-3 flex justify-between items-center z-50 rounded-t-2xl shadow-[0_-5px_10px_rgba(0,0,0,0.05)]">
+                    ${getNavItem('home', 'home', 'Home')}
+                    ${getNavItem('production', 'sprout', 'Produksi')}
+                    ${getNavItem('finance', 'wallet', 'Dana')}
+                    ${getNavItem('market', 'shopping-bag', 'Jual')}
+                    ${getNavItem('profile', 'user', 'Akun')}
+                </nav>
+            `;
+            renderIcons();
+            
+            // Post-render init (Charts, scroll adjustments)
+            if (state.currentAppView === 'home') initDashboardChart();
+            if (state.currentAppView === 'production' && state.activeTabs.production === 'AI_CHAT') scrollToChatBottom();
+        }
+
+        function getNavItem(id, icon, label) {
+            const isActive = state.currentAppView === id;
+            return `
+                <button onclick="navigate('${id}')" class="flex flex-col items-center gap-1 transition-all duration-300 ${isActive ? 'text-agro-green transform -translate-y-1' : 'text-gray-400'}">
+                    <i data-lucide="${icon}" width="24" stroke-width="${isActive ? 2.5 : 2}" class="${isActive ? 'fill-agro-green/10' : ''}"></i>
+                    <span class="text-[10px] font-medium ${isActive ? 'opacity-100' : 'opacity-0 h-0 overflow-hidden'}">${label}</span>
+                </button>
+            `;
+        }
+
+        function navigate(viewId) {
+            state.currentAppView = viewId;
+            renderApp();
+        }
+
+        // --- VIEWS ---
+
+        // A. DASHBOARD
+        function getDashboardHTML() {
+            return `
+                <div class="animate-fade-in">
+                    <!-- HEADER -->
+                    <div class="bg-agro-green pt-8 pb-16 px-6 rounded-b-[30px] shadow-lg relative z-10">
+                        <div class="flex justify-between items-start mb-6">
+                            <div class="text-white">
+                                <h1 class="text-2xl font-bold">Halo, ${state.user.name.split(' ')[0]}!</h1>
+                                <p class="opacity-90 text-sm flex items-center gap-1">📍 ${state.user.location}</p>
+                            </div>
+                            <div class="bg-white/20 p-2 rounded-full relative cursor-pointer active:scale-95 transition" onclick="showToast('Notifikasi dibaca')">
+                                <i data-lucide="bell" class="text-white w-6 h-6"></i>
+                                <span class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border border-white animate-pulse"></span>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-4 text-white">
+                            <i data-lucide="sun" class="w-10 h-10 text-yellow-300 animate-pulse"></i>
+                            <div>
+                                <div class="text-3xl font-bold">32°C</div>
+                                <div class="text-sm opacity-90">Cerah Berawan • Lembap 70%</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="px-4 -mt-10 relative z-20">
+                         <!-- BANNER -->
+                        <div class="bg-gradient-to-r from-agro-blue to-blue-600 rounded-2xl p-4 text-white shadow-xl mb-6">
+                            <h3 class="font-bold text-lg mb-1">Musim Tanam Optimal!</h3>
+                            <p class="text-sm opacity-90 mb-3">Prediksi cuaca mendukung untuk tanam Cabai.</p>
+                            <button onclick="navigate('production')" class="bg-white text-agro-blue px-4 py-2 rounded-lg text-sm font-bold shadow-sm active:scale-95 transition">Lihat Prediksi</button>
+                        </div>
+
+                        <!-- SHORTCUTS -->
+                        <div class="grid grid-cols-4 gap-2 mb-6">
+                            ${getShortcut('Panen', 'sprout', 'bg-green-100 text-green-700', 'production')}
+                            ${getShortcut('Modal', 'wallet', 'bg-blue-100 text-blue-700', 'finance')}
+                            ${getShortcut('Pakar', 'bot', 'bg-yellow-100 text-yellow-700', 'production')}
+                            ${getShortcut('Harga', 'trending-up', 'bg-purple-100 text-purple-700', 'market')}
+                        </div>
+
+                         <!-- CHART -->
+                        <h3 class="font-bold text-agro-dark text-lg mb-3">Harga Pasar (Cabai Rawit)</h3>
+                        <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 mb-6 cursor-pointer" onclick="navigate('market')">
+                            <div class="h-32 w-full relative">
+                                <canvas id="priceChart"></canvas>
+                            </div>
+                            <div class="flex justify-between items-end mt-2">
+                                <div>
+                                    <p class="text-xs text-gray-500">Pasar Induk Terdekat</p>
+                                    <p class="text-xl font-bold text-agro-dark">Rp 50.000 <span class="text-sm font-normal text-gray-500">/kg</span></p>
+                                </div>
+                                <span class="px-2 py-1 rounded-md text-xs font-bold bg-green-100 text-agro-dark border border-agro-green">+5% Hari ini</span>
+                            </div>
+                        </div>
+
+                        <!-- NOTIF -->
+                        <h3 class="font-bold text-agro-dark text-lg mb-3">Info Penting</h3>
+                        <div class="space-y-3">
+                             ${MOCK_NOTIFICATIONS.map(n => `
+                                <div class="bg-white rounded-2xl p-3 shadow-sm border-l-4 ${n.type === 'ALERT' ? 'border-l-red-500 bg-red-50' : 'border-l-blue-500'}">
+                                    <div class="flex gap-3">
+                                        <div class="mt-1 ${n.type === 'ALERT' ? 'text-red-500' : 'text-agro-blue'}">
+                                            <i data-lucide="${n.type === 'ALERT' ? 'cloud-rain' : 'bell'}" width="16"></i>
+                                        </div>
+                                        <div>
+                                            <h4 class="text-sm font-bold text-gray-800">${n.title}</h4>
+                                            <p class="text-xs text-gray-600 leading-relaxed">${n.message}</p>
+                                            <p class="text-[10px] text-gray-400 mt-1">${n.timestamp}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                             `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function getShortcut(label, icon, colorClass, view) {
+            return `
+            <div onclick="navigate('${view}')" class="flex flex-col items-center gap-2 cursor-pointer active:scale-95 transition group">
+                <div class="w-14 h-14 ${colorClass} rounded-2xl flex items-center justify-center shadow-sm">
+                    <i data-lucide="${icon}" width="20"></i>
+                </div>
+                <span class="text-xs font-medium text-gray-600">${label}</span>
+            </div>`;
+        }
+
+        function initDashboardChart() {
+            const ctx = document.getElementById('priceChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Sn', 'Sl', 'Rb', 'Km', 'Jm', 'Sb', 'Mg'],
+                    datasets: [{
+                        data: [40000, 42000, 41000, 45000, 48000, 50000, 50000],
+                        borderColor: '#43A046',
+                        backgroundColor: (context) => {
+                            const bg = context.chart.ctx.createLinearGradient(0, 0, 0, 200);
+                            bg.addColorStop(0, 'rgba(67, 160, 70, 0.4)');
+                            bg.addColorStop(1, 'rgba(67, 160, 70, 0)');
+                            return bg;
+                        },
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { x: { display: false }, y: { display: false } }
+                }
+            });
+        }
+
+        // B. PRODUCTION
+        function getProductionHTML() {
+            const tab = state.activeTabs.production;
+            let content = '';
+
+            if (tab === 'PREDICTION') {
+                content = `
+                    <div class="space-y-4 animate-fade-in">
+                        <div class="bg-gradient-to-br from-agro-green to-agro-dark text-white rounded-2xl p-4 shadow-lg relative overflow-hidden">
+                            <div class="absolute inset-0 opacity-10" style="background-image: radial-gradient(circle, #ffffff 1px, transparent 1px); background-size: 10px 10px;"></div>
+                            <div class="relative z-10">
+                                <h3 class="font-bold text-lg mb-2 flex items-center gap-2"><i data-lucide="sparkles" class="text-agro-gold" width="20"></i> Analisis Lahan AI</h3>
+                                <p class="text-sm opacity-90 mb-6 leading-relaxed">Ambil foto daun atau tanah, AI kami akan mendeteksi kesehatan tanaman Anda secara realtime.</p>
+                                <button onclick="openModal('camera')" class="w-full bg-agro-gold text-agro-dark hover:bg-yellow-400 font-bold border-2 border-transparent hover:border-white shadow-xl py-3 rounded-xl flex items-center justify-center gap-2">
+                                    <i data-lucide="camera" width="20"></i> BUKA KAMERA
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <h3 class="font-bold text-gray-800 mt-6">Timeline Musim Ini</h3>
+                        <div class="relative border-l-2 border-gray-200 ml-3 space-y-6 pb-4">
+                            <div class="ml-6 relative">
+                                <span class="absolute -left-[31px] top-1 w-4 h-4 rounded-full border-2 border-white bg-agro-green flex items-center justify-center"><i data-lucide="check" width="10" class="text-white"></i></span>
+                                <h4 class="text-sm font-bold line-through text-gray-400">15 Mei - Tanam</h4>
+                                <p class="text-xs text-green-600 font-bold">Selesai</p>
+                            </div>
+                            <div class="ml-6 relative">
+                                <span class="absolute -left-[31px] top-1 w-4 h-4 rounded-full border-2 border-white bg-agro-gold animate-pulse"></span>
+                                <h4 class="text-sm font-bold text-gray-800">Hari Ini - Pemupukan KCL</h4>
+                                <p class="text-xs text-gray-600 mb-2">Dosis: 50kg/Ha. Cuaca mendukung.</p>
+                                <button onclick="showToast('Tugas Selesai!')" class="py-1 px-3 rounded border border-agro-green text-agro-green text-xs">Tandai Selesai</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else if (tab === 'AI_CHAT') {
+                content = `
+                    <div class="flex flex-col h-[calc(100vh-200px)] animate-fade-in bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+                        <div class="bg-agro-green p-4 flex items-center gap-3 text-white shadow-md z-10">
+                            <div class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm border border-white/30"><i data-lucide="bot" class="text-agro-gold"></i></div>
+                            <div>
+                                <h3 class="font-bold text-sm">Agro-AI Expert</h3>
+                                <div class="flex items-center gap-1"><span class="w-2 h-2 bg-green-300 rounded-full animate-pulse"></span><p class="text-[10px] opacity-90">Lisensi Pertanian: #AG-2045-AI</p></div>
+                            </div>
+                        </div>
+                        <div id="chat-container" class="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
+                            ${state.chatHistory.map(msg => `
+                                <div class="flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}">
+                                    <div class="max-w-[80%] rounded-2xl p-3 shadow-sm ${msg.sender === 'user' ? 'bg-agro-green text-white rounded-tr-none' : 'bg-white text-gray-800 border border-gray-100 rounded-tl-none'}">
+                                        <p class="text-sm leading-relaxed">${msg.text}</p>
+                                        <p class="text-[10px] mt-1 text-right ${msg.sender === 'user' ? 'text-green-100' : 'text-gray-400'}">${msg.time}</p>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <div class="p-3 bg-white border-t border-gray-100 flex gap-2 items-center">
+                            <div class="flex-1 bg-gray-100 rounded-full px-4 py-2 flex items-center">
+                                <input type="text" id="chat-input" placeholder="Tanya..." class="bg-transparent border-none p-0 focus:outline-none text-sm w-full" onkeypress="if(event.key === 'Enter') sendChat()">
+                            </div>
+                            <button onclick="sendChat()" class="w-10 h-10 bg-agro-green rounded-full flex items-center justify-center text-white shadow-lg"><i data-lucide="send" width="18"></i></button>
+                        </div>
+                    </div>
+                `;
+            } else if (tab === 'RENTAL') {
+                content = `
+                    <div class="h-full flex flex-col animate-fade-in">
+                        <div class="bg-gray-200 h-64 rounded-2xl mb-4 relative overflow-hidden shadow-inner border border-gray-300 group">
+                             <div class="absolute inset-0 bg-[#e0eec0]"></div>
+                             <div class="absolute top-10 left-10 w-24 h-16 bg-[#c4db95] border border-white/50 opacity-60"></div>
+                             
+                             ${state.rentals.map(r => `
+                                <div class="absolute transition-all duration-[3000ms] cursor-pointer hover:scale-110 z-10" style="top:${r.top}; left:${r.left}" onclick="selectRental(${r.id})">
+                                    <div class="relative">
+                                        ${r.status === 'Available' ? '<div class="absolute -inset-3 bg-green-500/30 rounded-full animate-ping"></div>' : ''}
+                                        <div class="w-8 h-8 rounded-full border-2 border-white shadow-lg flex items-center justify-center ${r.status === 'Available' ? 'bg-agro-green text-white' : 'bg-gray-500 text-gray-200'}">
+                                            <i data-lucide="hammer" width="14"></i>
+                                        </div>
+                                        <div class="absolute -bottom-6 left-1/2 -translate-x-1/2 bg-white/90 px-1.5 py-0.5 rounded text-[8px] font-bold whitespace-nowrap shadow-sm">${r.name}</div>
+                                    </div>
+                                </div>
+                             `).join('')}
+                             
+                             <div class="absolute top-3 left-3 bg-white/90 backdrop-blur px-2 py-1 rounded-md shadow-sm flex items-center gap-2">
+                                <span class="relative flex h-2 w-2"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span></span>
+                                <span class="text-[10px] font-bold tracking-wider">LIVE MAP</span>
+                            </div>
+                        </div>
+                        <h3 class="font-bold text-gray-800 mb-3 px-1">Unit Disekitar Anda</h3>
+                        <div class="space-y-3">
+                             ${state.rentals.map(r => `
+                                <div class="bg-white rounded-2xl p-3 flex gap-4 border border-gray-100 shadow-sm" onclick="selectRental(${r.id})">
+                                    <div class="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center text-gray-500"><i data-lucide="hammer" width="20"></i></div>
+                                    <div class="flex-1">
+                                        <div class="flex justify-between"><h4 class="font-bold text-sm">${r.name}</h4><span class="text-xs font-bold ${r.status === 'Available' ? 'text-green-600' : 'text-red-500'}">${r.status}</span></div>
+                                        <p class="text-xs text-gray-500 mb-2">${r.owner} • ${r.dist}</p>
+                                        <div class="flex justify-between items-end">
+                                            <p class="font-bold text-sm">${r.price}</p>
+                                            <button class="bg-agro-green text-white px-3 py-1 rounded-lg text-xs" ${r.status !== 'Available' ? 'disabled style="opacity:0.5"' : ''}>Sewa</button>
+                                        </div>
+                                    </div>
+                                </div>
+                             `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            return `
+                <div class="pt-6 px-4 animate-slide-up">
+                    <h1 class="text-2xl font-bold text-agro-dark mb-4">Produksi Cerdas</h1>
+                    <div class="flex bg-gray-200 p-1 rounded-xl mb-6">
+                        ${['PREDICTION','AI_CHAT','RENTAL'].map(t => `
+                            <button onclick="setTab('production', '${t}')" class="flex-1 py-2 text-sm font-bold rounded-lg transition-all ${tab === t ? 'bg-white text-agro-dark shadow-sm' : 'text-gray-500'}">
+                                ${t === 'PREDICTION' ? 'Prediksi' : t === 'AI_CHAT' ? 'AI Expert' : 'Alsintan'}
+                            </button>
+                        `).join('')}
+                    </div>
+                    ${content}
+                    ${getModalHTML()}
+                </div>
+            `;
+        }
+
+        // C. FINANCE
+        function getFinanceHTML() {
+            const tab = state.activeTabs.finance;
+            let content = '';
+
+            if (tab === 'LOAN') {
+                content = `
+                    <div class="space-y-4 animate-fade-in">
+                        <div class="bg-gradient-to-r from-agro-dark to-agro-green text-white rounded-2xl p-4">
+                            <div class="flex justify-between items-start">
+                                <div><p class="text-xs opacity-80 mb-1">Skor Kredit Petani</p><h2 class="text-4xl font-bold">850</h2><span class="mt-2 bg-white/20 text-white px-2 py-1 rounded text-xs font-bold">Sangat Layak</span></div>
+                                <div class="bg-white/20 p-3 rounded-full"><i data-lucide="shield-check" width="32" class="text-agro-gold"></i></div>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+                             <h3 class="font-bold text-gray-800 mb-4">Formulir Pengajuan</h3>
+                             <div class="mb-4">
+                                <label class="text-sm text-gray-600 block mb-2 flex justify-between"><span>Butuh Dana?</span><span class="font-bold text-agro-green">Rp 2.000.000</span></label>
+                                <input type="range" class="w-full accent-agro-green h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                             </div>
+                             <div class="mb-6">
+                                <label class="text-sm text-gray-600 block mb-2">Jenis</label>
+                                <div class="flex bg-gray-100 p-1 rounded-lg">
+                                    <button class="flex-1 py-2 text-sm rounded-md flex items-center justify-center gap-1 bg-white shadow-sm text-green-700 font-bold"><i data-lucide="leaf" width="14"></i> Syariah</button>
+                                    <button class="flex-1 py-2 text-sm rounded-md flex items-center justify-center gap-1 text-gray-500">Konvensional</button>
+                                </div>
+                             </div>
+                             <button onclick="showToast('Pengajuan Terkirim!')" class="w-full bg-agro-green text-white py-3 rounded-xl font-bold">Ajukan Sekarang</button>
+                        </div>
+                    </div>
+                `;
+            } else if (tab === 'INVEST') {
+                content = `
+                    <div class="space-y-4 animate-fade-in">
+                        <div class="bg-blue-50 border border-blue-100 p-4 rounded-xl flex gap-3">
+                            <div class="bg-blue-100 p-2 rounded-full h-fit"><i data-lucide="coins" class="text-blue-600" width="20"></i></div>
+                            <div><h4 class="font-bold text-blue-800 text-sm">Bantu Sesama Petani</h4><p class="text-xs text-blue-600 mt-1">Investasi mulai Rp 50.000.</p></div>
+                        </div>
+                        ${state.projects.map(p => `
+                            <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+                                <div class="flex justify-between items-start mb-2"><div><h4 class="font-bold text-gray-800">${p.name}</h4><p class="text-xs text-gray-500">${p.farmer}</p></div><span class="bg-green-100 text-agro-dark px-2 py-1 rounded text-xs font-bold">ROI ${p.return}</span></div>
+                                <div class="mt-4 mb-2"><div class="w-full bg-gray-200 h-2 rounded-full overflow-hidden"><div class="bg-agro-gold h-full rounded-full" style="width: ${p.progress}%"></div></div></div>
+                                <div class="flex justify-between items-center mt-4"><p class="text-xs text-gray-400">Target: Rp ${p.target.toLocaleString()}</p><button onclick="showToast('Investasi Berhasil!')" class="bg-agro-green text-white px-3 py-1 rounded-lg text-xs font-bold">Danai</button></div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            } else if (tab === 'REPAY') {
+                 content = `
+                    <div class="space-y-4 animate-fade-in">
+                        <div class="bg-red-50 border-l-4 border-l-red-500 rounded-2xl p-4 shadow-sm">
+                             <div class="flex justify-between"><p class="text-sm font-bold text-gray-700">Tagihan Berikutnya</p><span class="bg-red-100 text-red-800 px-2 py-0.5 rounded text-xs font-bold">15 Agt</span></div>
+                             <h2 class="text-2xl font-bold text-red-600 mt-1">Rp 500.000</h2>
+                        </div>
+                        <div class="bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 p-4 rounded-xl flex gap-3 items-center cursor-pointer" onclick="showToast('Opsi Bayar Panen Dipilih')">
+                            <div class="bg-white p-2 rounded-full shadow-sm"><i data-lucide="leaf" class="text-orange-500" width="20"></i></div>
+                            <div><h4 class="font-bold text-orange-800 text-sm">Bayar Pakai Gabah?</h4><p class="text-xs text-orange-600">Potong cicilan dengan hasil panen.</p></div>
+                        </div>
+                    </div>
+                 `;
+            }
+
+            return `
+                 <div class="pt-6 px-4 animate-slide-up">
+                    <h1 class="text-2xl font-bold text-agro-dark mb-4">Pembiayaan</h1>
+                    <div class="flex bg-gray-200 p-1 rounded-xl mb-6">
+                        ${['LOAN','INVEST','REPAY'].map(t => `
+                            <button onclick="setTab('finance', '${t}')" class="flex-1 py-2 text-sm font-bold rounded-lg transition-all ${tab === t ? 'bg-white text-agro-dark shadow-sm' : 'text-gray-500'}">
+                                ${t === 'LOAN' ? 'Ajukan' : t === 'INVEST' ? 'Investasi' : 'Cicilan'}
+                            </button>
+                        `).join('')}
+                    </div>
+                    ${content}
+                 </div>
+            `;
+        }
+
+        // D. MARKET
+        function getMarketHTML() {
+             const tab = state.activeTabs.market;
+             let content = '';
+
+             if (tab === 'BURSA') {
+                 content = `
+                    <div class="space-y-4 animate-fade-in">
+                        ${state.marketRequests.map(req => `
+                            <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+                                <div class="flex justify-between items-start mb-2"><div><h4 class="font-bold text-gray-800">${req.buyer}</h4><p class="text-xs text-gray-500">${req.loc}</p></div><span class="bg-green-100 text-agro-dark px-2 py-1 rounded text-xs font-bold">Open</span></div>
+                                <div class="bg-gray-50 p-3 rounded-lg grid grid-cols-2 gap-2 text-sm mb-3">
+                                    <div><p class="text-xs text-gray-500">Komoditas</p><p class="font-bold">${req.item}</p></div>
+                                    <div><p class="text-xs text-gray-500">Volume</p><p class="font-bold">${req.vol}</p></div>
+                                    <div class="col-span-2 border-t pt-2 mt-1"><p class="text-xs text-gray-500">Penawaran</p><p class="font-bold text-lg text-agro-green">${req.price}</p></div>
+                                </div>
+                                <button onclick="openModal('wizard')" class="w-full bg-agro-green text-white py-3 rounded-xl font-bold">Ambil Kontrak</button>
+                            </div>
+                        `).join('')}
+                    </div>
+                 `;
+             } else if (tab === 'MY_CONTRACT') {
+                 content = `
+                    <div class="space-y-4 animate-fade-in">
+                        <div class="bg-gradient-to-r from-agro-dark to-agro-green text-white rounded-2xl p-4 shadow-lg">
+                             <div class="flex justify-between items-center mb-4"><h3 class="font-bold">Kontrak Aktif</h3><span class="bg-white/20 px-2 py-0.5 rounded text-xs">#CTR-8829</span></div>
+                             <div class="space-y-2 mb-4">
+                                <div class="flex justify-between text-sm"><span>Pembeli</span> <b>PT Indofood</b></div>
+                                <div class="flex justify-between text-sm"><span>Deadline</span> <b>15 Okt 2024</b></div>
+                             </div>
+                             <div class="bg-white/10 p-2 rounded-lg">
+                                 <p class="text-xs mb-2 opacity-80">Pembayaran</p>
+                                 <div class="flex gap-1 h-2 rounded-full overflow-hidden bg-black/20">
+                                    <div class="w-1/3 bg-green-400"></div><div class="w-1/3 bg-yellow-400"></div><div class="w-1/3 bg-gray-400"></div>
+                                 </div>
+                             </div>
+                        </div>
+                    </div>
+                 `;
+             } else if (tab === 'TRACKING') {
+                 content = `
+                    <div class="space-y-4 animate-fade-in">
+                        <div class="bg-white rounded-2xl p-6 text-center shadow-sm border border-gray-100">
+                             <i data-lucide="package" width="48" class="mx-auto text-gray-300 mb-4"></i>
+                             <h3 class="font-bold text-gray-800 mb-2">Identitas Panen</h3>
+                             <p class="text-sm text-gray-500 mb-6">Generate QR Code untuk karung hasil panen.</p>
+                             <button onclick="showToast('QR Generated!')" class="w-full bg-agro-green text-white py-3 rounded-xl font-bold">Generate QR Lot #001</button>
+                        </div>
+                        <div class="relative border-l-2 border-gray-200 ml-4 space-y-8 py-2">
+                            <div class="ml-6 relative"><span class="absolute -left-[33px] bg-agro-green text-white p-1 rounded-full"><i data-lucide="check" width="12"></i></span><h4 class="font-bold text-sm">Kebun Petani</h4><p class="text-xs text-gray-500">08:00 • Dipanen</p></div>
+                            <div class="ml-6 relative"><span class="absolute -left-[33px] bg-blue-500 text-white p-1 rounded-full animate-pulse"><i data-lucide="truck" width="12"></i></span><h4 class="font-bold text-sm text-blue-600">Dalam Perjalanan</h4><p class="text-xs text-gray-500">Estimasi tiba: 06:00</p></div>
+                        </div>
+                    </div>
+                 `;
+             }
+
+             return `
+                 <div class="pt-6 px-4 animate-slide-up">
+                    <h1 class="text-2xl font-bold text-agro-dark mb-4">Pasar</h1>
+                    <div class="flex bg-gray-200 p-1 rounded-xl mb-6">
+                        ${['BURSA','MY_CONTRACT','TRACKING'].map(t => `
+                            <button onclick="setTab('market', '${t}')" class="flex-1 py-2 text-sm font-bold rounded-lg transition-all ${tab === t ? 'bg-white text-agro-dark shadow-sm' : 'text-gray-500'}">
+                                ${t === 'BURSA' ? 'Bursa' : t === 'MY_CONTRACT' ? 'Kontrakku' : 'Lacak'}
+                            </button>
+                        `).join('')}
+                    </div>
+                    ${content}
+                    ${getModalHTML()}
+                 </div>
+            `;
+        }
+
+        // E. PROFILE
+        function getProfileHTML() {
+            return `
+                <div class="pb-24 animate-slide-up">
+                    <div class="bg-agro-green pb-16 pt-8 px-6 rounded-b-[40px] shadow-lg text-center text-white relative">
+                        <div class="w-24 h-24 bg-white rounded-full mx-auto mb-4 border-4 border-white/30 flex items-center justify-center overflow-hidden">
+                            <span class="text-agro-green text-3xl font-bold">${state.user.name.charAt(0)}</span>
+                        </div>
+                        <h1 class="text-2xl font-bold">${state.user.name}</h1>
+                        <p class="opacity-90 flex items-center justify-center gap-1"><i data-lucide="map-pin" width="14"></i> ${state.user.location}</p>
+                        
+                        <div class="absolute -bottom-8 left-6 right-6">
+                            <div class="bg-white rounded-2xl flex justify-between items-center py-4 px-6 shadow-xl text-gray-900">
+                                <div class="text-center"><p class="text-xs text-gray-500">Reputasi</p><div class="flex items-center gap-1 font-bold text-lg text-agro-dark"><i data-lucide="star" width="18" class="text-agro-gold fill-agro-gold"></i> 4.8</div></div>
+                                <div class="w-px h-8 bg-gray-200"></div>
+                                <div class="text-center"><p class="text-xs text-gray-500">Kontrak</p><p class="font-bold text-lg text-agro-dark">12x</p></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-16 px-4 space-y-4">
+                        <h3 class="font-bold text-gray-800 px-2">Pengaturan</h3>
+                        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 divide-y">
+                            <div class="p-4 flex items-center gap-3 cursor-pointer"><div class="bg-gray-100 p-2 rounded-lg"><i data-lucide="user" width="18" class="text-gray-600"></i></div><span class="text-sm font-medium">Edit Profil</span></div>
+                            <div class="p-4 flex items-center gap-3 cursor-pointer text-red-500" onclick="logout()"><div class="bg-red-50 p-2 rounded-lg"><i data-lucide="log-out" width="18" class="text-red-500"></i></div><span class="text-sm font-medium">Keluar</span></div>
+                        </div>
+                        <div class="text-center text-gray-400 text-xs mt-8 mb-4">Agro-Chain Nusantara v1.0.0</div>
+                    </div>
+                </div>
+            `;
+        }
+
+
+        // --- LOGIC HELPERS ---
+
+        function setTab(view, tabId) {
+            state.activeTabs[view] = tabId;
+            renderApp();
+        }
+
+        function sendChat() {
+            const input = document.getElementById('chat-input');
+            const text = input.value.trim();
+            if (!text) return;
+            
+            // Add User Msg
+            state.chatHistory.push({ id: Date.now(), sender: 'user', text: text, time: 'Now' });
+            input.value = '';
+            renderApp();
+            
+            // Simulating AI
+            setTimeout(() => {
+                const replies = [
+                    "Berdasarkan analisis, sebaiknya tambahkan pupuk Urea.",
+                    "Hama wereng bisa diatasi dengan insektisida alami dari daun sirsak.",
+                    "Cuaca besok diprediksi hujan lebat, tunda pemupukan."
+                ];
+                state.chatHistory.push({ id: Date.now()+1, sender: 'ai', text: replies[Math.floor(Math.random()*replies.length)], time: 'Now' });
+                renderApp();
+            }, 1000);
+        }
+
+        function scrollToChatBottom() {
+            const container = document.getElementById('chat-container');
+            if(container) container.scrollTop = container.scrollHeight;
+        }
+
+        function selectRental(id) {
+            state.modals.rental = state.rentals.find(r => r.id === id);
+            renderApp();
+        }
+
+        function openModal(type) {
+            state.modals[type] = true;
+            renderApp();
+        }
+
+        function closeModal(type) {
+            if(type === 'rental') state.modals.rental = null;
+            else state.modals[type] = false;
+            renderApp();
+        }
+
+        function getModalHTML() {
+            if (state.modals.camera) {
+                return `
+                <div class="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="closeModal('camera')"></div>
+                    <div class="bg-white rounded-2xl w-full max-w-sm shadow-2xl relative z-10 p-6 text-center animate-slide-up">
+                        <h3 class="font-bold text-lg mb-4">Scan Tanaman</h3>
+                        <div class="w-full h-64 bg-black rounded-xl mb-4 relative overflow-hidden">
+                             <div class="absolute top-1/2 left-0 right-0 h-0.5 bg-agro-gold shadow-[0_0_10px_rgba(251,202,56,0.8)] animate-pulse"></div>
+                             <p class="absolute bottom-4 text-white w-full text-sm">Memindai...</p>
+                        </div>
+                        <button onclick="closeModal('camera'); showToast('Analisis Selesai')" class="w-full bg-agro-green text-white py-3 rounded-xl font-bold">Ambil Foto</button>
+                    </div>
+                </div>`;
+            }
+            if (state.modals.wizard) {
+                 return `
+                <div class="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="closeModal('wizard')"></div>
+                    <div class="bg-white rounded-2xl w-full max-w-sm shadow-2xl relative z-10 p-6 animate-slide-up">
+                        <h3 class="font-bold text-lg mb-4">Kontrak Digital</h3>
+                        <div class="space-y-3 mb-6">
+                            <p class="text-sm">Anda akan menandatangani kontrak dengan <b>PT Indofood</b>.</p>
+                            <div class="bg-gray-50 p-3 rounded text-xs">Hash: 0x829... (Blockchain)</div>
+                        </div>
+                        <button onclick="closeModal('wizard'); showToast('Kontrak Sah!')" class="w-full bg-agro-green text-white py-3 rounded-xl font-bold">Tanda Tangan Digital</button>
+                    </div>
+                </div>`;
+            }
+            if (state.modals.rental) {
+                const r = state.modals.rental;
+                return `
+                <div class="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="closeModal('rental')"></div>
+                    <div class="bg-white rounded-2xl w-full max-w-sm shadow-2xl relative z-10 p-6 animate-slide-up">
+                        <h3 class="font-bold text-lg mb-2">${r.name}</h3>
+                        <p class="text-sm text-gray-500 mb-4">${r.owner} • ${r.dist}</p>
+                        <div class="flex justify-between text-sm mb-2"><span>Harga</span> <b>${r.price}</b></div>
+                        <div class="flex justify-between text-sm mb-4"><span>Status</span> <b class="${r.status === 'Available' ? 'text-green-600' : 'text-red-500'}">${r.status}</b></div>
+                        <div class="flex gap-2">
+                             <button onclick="closeModal('rental')" class="flex-1 border border-gray-300 py-2 rounded-xl">Batal</button>
+                             <button onclick="closeModal('rental'); showToast('Unit Sedang OTW')" class="flex-1 bg-agro-green text-white py-2 rounded-xl font-bold" ${r.status !== 'Available' ? 'disabled' : ''}>Sewa Sekarang</button>
+                        </div>
+                    </div>
+                </div>`;
+            }
+            return '';
+        }
+
+        function logout() {
+            localStorage.removeItem('agroUser');
+            location.reload();
+        }
+
+        // --- MASTER RENDER ---
+        function render() {
+            if (state.view === 'SPLASH') renderSplash();
+            else if (state.view === 'ONBOARDING') renderOnboarding();
+            else if (state.view === 'APP') renderApp();
+        }
+
+        // --- INIT ---
+        window.addEventListener('DOMContentLoaded', () => {
+            render();
+        });
+
+    </script>
+</body>
 </html>
