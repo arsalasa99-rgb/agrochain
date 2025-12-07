@@ -1,0 +1,9 @@
+{
+  "name": "Copy of Agro-Chain Nusantara",
+  "description": "Platform ekosistem pertanian terintegrasi untuk Indonesia Emas 2045, menghubungkan petani, pemodal, dan pasar.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone",
+    "geolocation"
+  ]
+}
